@@ -1,6 +1,6 @@
 const HOST_IP = typeof window !== 'undefined' ? window.location.hostname : '192.168.0.122';
 const API_BASE_URL =
-  (import.meta as any).env?.VITE_API_BASE_URL || 'https://chair-currently-routine-develop.trycloudflare.com/api';
+  (import.meta as any).env?.VITE_API_BASE_URL || 'https://mainstream-flux-secretary-limit.trycloudflare.com/api';
 
 export interface LinkValidationResponse {
   valid: boolean;

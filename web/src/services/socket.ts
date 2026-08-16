@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL =
-  (import.meta as any).env?.VITE_SOCKET_URL || 'https://chair-currently-routine-develop.trycloudflare.com';
+  (import.meta as any).env?.VITE_SOCKET_URL || 'https://mainstream-flux-secretary-limit.trycloudflare.com';
 
 class SocketService {
   private socket: Socket | null = null;
