@@ -1,5 +1,6 @@
 const HOST_IP = typeof window !== 'undefined' ? window.location.hostname : '192.168.0.122';
-const API_BASE_URL = `http://${HOST_IP}:5000/api`;
+const API_BASE_URL =
+  (import.meta as any).env?.VITE_API_BASE_URL || 'https://better-wasps-film.loca.lt/api';
 
 export interface LinkValidationResponse {
   valid: boolean;

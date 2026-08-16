@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
-const HOST_IP = typeof window !== 'undefined' ? window.location.hostname : '192.168.0.122';
-const SOCKET_URL = `http://${HOST_IP}:5000`;
+const SOCKET_URL =
+  (import.meta as any).env?.VITE_SOCKET_URL || 'https://better-wasps-film.loca.lt';
 
 class SocketService {
   private socket: Socket | null = null;
