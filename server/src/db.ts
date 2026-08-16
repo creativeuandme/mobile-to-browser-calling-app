@@ -1,7 +1,12 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 
-const dbPath = path.join(__dirname, '..', 'calling_app.db');
+const dataDir = process.env.DATA_DIR || path.join(__dirname, '..');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+const dbPath = path.join(dataDir, 'calling_app.db');
 export const db = new Database(dbPath);
 
 // Enable WAL mode for high performance concurrency

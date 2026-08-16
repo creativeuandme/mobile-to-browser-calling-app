@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL =
-  (import.meta as any).env?.VITE_SOCKET_URL || 'https://maryland-prospect-years-cruise.trycloudflare.com';
+  (import.meta as any).env?.VITE_SOCKET_URL || 'https://calling-media-backend.onrender.com';
 
 class SocketService {
   private socket: Socket | null = null;

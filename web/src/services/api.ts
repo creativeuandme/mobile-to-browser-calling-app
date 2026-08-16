@@ -1,6 +1,6 @@
-const HOST_IP = typeof window !== 'undefined' ? window.location.hostname : '192.168.0.122';
+const HOST_IP = typeof window !== 'undefined' ? window.location.hostname : 'callingmedia.netlify.app';
 const API_BASE_URL =
-  (import.meta as any).env?.VITE_API_BASE_URL || 'https://maryland-prospect-years-cruise.trycloudflare.com/api';
+  (import.meta as any).env?.VITE_API_BASE_URL || 'https://calling-media-backend.onrender.com/api';
 
 export interface LinkValidationResponse {
   valid: boolean;
