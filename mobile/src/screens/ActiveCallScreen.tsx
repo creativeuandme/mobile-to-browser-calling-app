@@ -73,6 +73,22 @@ export const ActiveCallScreen: React.FC<ActiveCallScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Audio Output Element for Web Browser Execution */}
+      {Platform.OS === 'web' && remoteStream && (
+        <audio
+          ref={(ref) => {
+            if (ref && ref.srcObject !== remoteStream) {
+              ref.srcObject = remoteStream;
+              ref.muted = false;
+              ref.volume = 1.0;
+              ref.play().catch((e) => console.warn('[Mobile App Web] Remote audio play error:', e));
+            }
+          }}
+          autoPlay
+          playsInline
+        />
+      )}
+
       {/* Media View */}
       {callType === 'video' ? (
         <View style={styles.videoContainer}>
