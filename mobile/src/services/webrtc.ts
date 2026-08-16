@@ -64,7 +64,11 @@ export class MobileWebRTCManager {
     this.log(`Initializing Mobile WebRTC Call ID: ${callId}, Type: ${callType}`);
 
     const constraints = {
-      audio: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      },
       video: callType === 'video' ? { facingMode: this.isFrontCamera ? 'user' : 'environment' } : false
     };
 

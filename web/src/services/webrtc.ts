@@ -39,7 +39,11 @@ export class WebRTCManager {
 
     // 1. getUserMedia
     const constraints: MediaStreamConstraints = {
-      audio: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      },
       video: callType === 'video' ? { facingMode: this.currentFacingMode } : false
     };
 

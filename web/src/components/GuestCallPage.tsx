@@ -93,6 +93,13 @@ export const GuestCallPage: React.FC<GuestCallPageProps> = ({ token }) => {
     setCallType(type);
     setPermissionError(null);
 
+    // Pre-unlock browser web audio context inside touch event
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.muted = false;
+      remoteAudioRef.current.volume = 1.0;
+      remoteAudioRef.current.play().catch(() => {});
+    }
+
     // Connect Socket.IO
     const socket = socketService.connect();
 
@@ -169,13 +176,23 @@ export const GuestCallPage: React.FC<GuestCallPageProps> = ({ token }) => {
           }
         },
         onRemoteStream: (stream) => {
+          console.log('[Guest Call Page] Remote stream received. Audio tracks:', stream.getAudioTracks().length);
+          stream.getAudioTracks().forEach((track) => {
+            track.enabled = true;
+          });
+
+          if (remoteAudioRef.current) {
+            remoteAudioRef.current.srcObject = stream;
+            remoteAudioRef.current.muted = false;
+            remoteAudioRef.current.volume = 1.0;
+            remoteAudioRef.current.play().catch((e) => {
+              console.warn('[Guest Call Page] Remote audio play error:', e);
+            });
+          }
+
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
             remoteVideoRef.current.play().catch((e) => console.warn('Remote video play error:', e));
-          }
-          if (remoteAudioRef.current) {
-            remoteAudioRef.current.srcObject = stream;
-            remoteAudioRef.current.play().catch((e) => console.warn('Remote audio play error:', e));
           }
         },
         onConnectionStateChange: (state) => {
