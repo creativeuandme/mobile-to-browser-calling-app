@@ -87,14 +87,20 @@ export class WebRTCManager {
     const senders = this.peerConnection.getSenders();
     this.log(`Total RTCPeerConnection Senders: ${senders.length}`);
 
-    // 4. Remote Track Event Listener
+    // 4. Remote Track Event Listener (Guaranteed Single Invocation)
+    let hasHandledRemoteStream = false;
     this.remoteStream = new MediaStream();
+
     this.peerConnection.ontrack = (event) => {
       this.log(`ontrack EVENT FIRED! Track Kind: ${event.track.kind}, ID: ${event.track.id}, Enabled: ${event.track.enabled}`);
-      event.streams[0].getTracks().forEach((track) => {
-        this.remoteStream?.addTrack(track);
-      });
-      if (this.callbacks.onRemoteStream && this.remoteStream) {
+      if (event.streams && event.streams[0]) {
+        this.remoteStream = event.streams[0];
+      } else {
+        this.remoteStream?.addTrack(event.track);
+      }
+
+      if (!hasHandledRemoteStream && this.callbacks.onRemoteStream && this.remoteStream) {
+        hasHandledRemoteStream = true;
         this.callbacks.onRemoteStream(this.remoteStream);
       }
     };

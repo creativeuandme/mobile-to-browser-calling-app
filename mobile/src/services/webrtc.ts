@@ -111,9 +111,12 @@ export class MobileWebRTCManager {
         }
       }
 
+      let hasHandledRemoteStream = false;
+
       this.peerConnection.ontrack = (event: any) => {
         this.log(`ontrack EVENT FIRED on Mobile! Track Kind: ${event.track?.kind || 'unknown'}`);
-        if (event.streams && event.streams[0]) {
+        if (!hasHandledRemoteStream && event.streams && event.streams[0]) {
+          hasHandledRemoteStream = true;
           this.remoteStream = event.streams[0];
           if (this.callbacks.onRemoteStream) {
             this.callbacks.onRemoteStream(this.remoteStream);
@@ -123,9 +126,12 @@ export class MobileWebRTCManager {
 
       this.peerConnection.onaddstream = (event: any) => {
         this.log(`onaddstream EVENT FIRED on Mobile! Stream URL: ${event.stream?.toURL ? event.stream.toURL() : 'stream'}`);
-        this.remoteStream = event.stream;
-        if (this.callbacks.onRemoteStream) {
-          this.callbacks.onRemoteStream(this.remoteStream);
+        if (!hasHandledRemoteStream && event.stream) {
+          hasHandledRemoteStream = true;
+          this.remoteStream = event.stream;
+          if (this.callbacks.onRemoteStream) {
+            this.callbacks.onRemoteStream(this.remoteStream);
+          }
         }
       };
 
