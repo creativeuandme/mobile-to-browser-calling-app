@@ -112,17 +112,16 @@ export const GuestCallPage: React.FC<GuestCallPageProps> = ({ token }) => {
     socket.off('call-missed');
     socket.off('call-ended');
 
-    // Authenticate Guest Socket
-    socket.emit('guest-authenticate', { guestSessionId: validation.guest_session_id });
+    // Authenticate & Initiate Call over Socket.IO
+    socket.emit('guest-authenticate', {
+      guestSessionId: validation.guest_session_id,
+      tokenId: validation.token_id
+    });
 
-    socket.on('authenticated', () => {
-      console.log('[Guest] Authenticated on socket');
-      // Emit call initiation
-      socket.emit('call-initiate', {
-        guestSessionId: validation.guest_session_id,
-        tokenId: validation.token_id,
-        callType: type
-      });
+    socket.emit('call-initiate', {
+      guestSessionId: validation.guest_session_id,
+      tokenId: validation.token_id,
+      callType: type
     });
 
     socket.on('incoming-call', (data: { callId: string; callType: 'voice' | 'video' }) => {

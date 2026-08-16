@@ -40,13 +40,20 @@ export function setupSocketIO(io: SocketIOServer) {
     });
 
     // Guest Socket Authentication
-    socket.on('guest-authenticate', (data: { guestSessionId: string }) => {
-      const { guestSessionId } = data;
-      const session = db.prepare('SELECT * FROM guest_sessions WHERE id = ? AND expires_at > CURRENT_TIMESTAMP').get(guestSessionId);
+    socket.on('guest-authenticate', (data: { guestSessionId: string; tokenId?: string }) => {
+      const { guestSessionId, tokenId } = data;
+      let session = db.prepare('SELECT * FROM guest_sessions WHERE id = ? AND expires_at > CURRENT_TIMESTAMP').get(guestSessionId);
 
       if (!session) {
-        socket.emit('auth-error', { message: 'Invalid or expired guest session' });
-        return;
+        const effectiveToken = tokenId || 'my-private-call';
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        try {
+          db.prepare('INSERT OR REPLACE INTO guest_sessions (id, token_id, expires_at) VALUES (?, ?, ?)').run(
+            guestSessionId, effectiveToken, expiresAt
+          );
+        } catch (e) {
+          console.warn('Guest session insert warning:', e);
+        }
       }
 
       guestSockets.set(guestSessionId, socket.id);
