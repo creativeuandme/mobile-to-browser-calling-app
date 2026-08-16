@@ -17,7 +17,11 @@ export interface TurnCredentialsResponse {
 
 export async function validateCallLink(token: string): Promise<LinkValidationResponse> {
   try {
-    const res = await fetch(`${API_BASE_URL}/call-links/${token}/validate`);
+    const res = await fetch(`${API_BASE_URL}/call-links/${token}/validate`, {
+      headers: {
+        'bypass-tunnel-reminder': 'true'
+      }
+    });
     const data = await res.json();
     return data;
   } catch (err) {
@@ -30,7 +34,11 @@ export async function validateCallLink(token: string): Promise<LinkValidationRes
 
 export async function fetchTurnCredentials(): Promise<RTCIceServer[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/webrtc/turn-credentials`);
+    const res = await fetch(`${API_BASE_URL}/webrtc/turn-credentials`, {
+      headers: {
+        'bypass-tunnel-reminder': 'true'
+      }
+    });
     const data: TurnCredentialsResponse = await res.json();
     return data.iceServers || [{ urls: 'stun:stun.l.google.com:19302' }];
   } catch (err) {
