@@ -108,4 +108,15 @@ export function initDatabase() {
 
     console.log('✓ Default owner account seeded: owner@example.com / password123');
   }
+
+  // Ensure my-private-call link token exists and is bound to default owner ID
+  const defaultOwner = db.prepare('SELECT id FROM users WHERE email = ?').get('owner@example.com') as any;
+  if (defaultOwner) {
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256').update('my-private-call').digest('hex');
+    db.prepare('INSERT OR REPLACE INTO call_tokens (id, owner_id, token_hash, label, is_active) VALUES (?, ?, ?, ?, 1)').run(
+      'my-private-call', defaultOwner.id, hash, 'Personal Private Link'
+    );
+    db.prepare('UPDATE call_tokens SET owner_id = ? WHERE is_active = 1').run(defaultOwner.id);
+  }
 }

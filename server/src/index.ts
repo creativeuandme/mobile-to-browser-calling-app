@@ -14,6 +14,7 @@ import { setupSocketIO } from './socket';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', true);
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
