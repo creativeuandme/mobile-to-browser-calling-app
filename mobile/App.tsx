@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator } from 'react-native';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { CallHistoryScreen } from './src/screens/CallHistoryScreen';
@@ -8,13 +8,14 @@ import { IncomingCallModal } from './src/screens/IncomingCallModal';
 import { ActiveCallScreen } from './src/screens/ActiveCallScreen';
 import { mobileSocketService } from './src/services/socket';
 import { setupPushNotifications } from './src/services/push';
-import { setAuthToken } from './src/services/api';
+import { setAuthToken, loginOwner } from './src/services/api';
 
 type Screen = 'dashboard' | 'history' | 'active_call';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
   // Incoming Call State
   const [incomingCall, setIncomingCall] = useState<{
@@ -31,7 +32,24 @@ export default function App() {
 
   useEffect(() => {
     setupPushNotifications();
+    autoLoginDefaultOwner();
   }, []);
+
+  const autoLoginDefaultOwner = async () => {
+    try {
+      setIsInitializing(true);
+      const res = await loginOwner('owner@example.com', 'password123');
+      setUser(res.user);
+      setAuthToken(res.token);
+      mobileSocketService.authenticate(res.token);
+      setupSocketListeners();
+      console.log('[Mobile App] Auto-login default owner SUCCESS');
+    } catch (err) {
+      console.warn('[Mobile App] Auto-login failed, falling back to login screen:', err);
+    } finally {
+      setIsInitializing(false);
+    }
+  };
 
   const handleLoginSuccess = (userData: any, token: string) => {
     setUser(userData);
@@ -50,7 +68,7 @@ export default function App() {
     socket.off('call-ended');
 
     socket.on('incoming-call', (data: { callId: string; callType: 'voice' | 'video'; tokenLabel?: string }) => {
-      console.log('[Mobile App] Received incoming call:', data);
+      console.log('[Mobile App] Received incoming call alert:', data);
       setIncomingCall(data);
     });
 
@@ -96,19 +114,36 @@ export default function App() {
     setCurrentScreen('dashboard');
   };
 
-  if (!user) {
+  if (isInitializing) {
     return (
-      <View style={styles.container}>
-        <StatusBar style="light" />
-        <AuthScreen onLoginSuccess={handleLoginSuccess} />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#10b981" />
+        <Text style={styles.loadingText}>Connecting Owner App...</Text>
       </View>
     );
   }
 
-  if (currentScreen === 'active_call' && activeCall) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="light" />
+  if (!user) {
+    return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+
+      {currentScreen === 'dashboard' && (
+        <DashboardScreen
+          user={user}
+          onLogout={handleLogout}
+          onViewHistory={() => setCurrentScreen('history')}
+        />
+      )}
+
+      {currentScreen === 'history' && (
+        <CallHistoryScreen onBack={() => setCurrentScreen('dashboard')} />
+      )}
+
+      {currentScreen === 'active_call' && activeCall && (
         <ActiveCallScreen
           callId={activeCall.callId}
           callType={activeCall.callType}
@@ -117,34 +152,16 @@ export default function App() {
             setCurrentScreen('dashboard');
           }}
         />
-      </View>
-    );
-  }
+      )}
 
-  if (currentScreen === 'history') {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="light" />
-        <CallHistoryScreen onBack={() => setCurrentScreen('dashboard')} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <DashboardScreen
-        user={user}
-        onLogout={handleLogout}
-        onViewHistory={() => setCurrentScreen('history')}
-      />
-
-      <IncomingCallModal
-        visible={!!incomingCall}
-        callData={incomingCall}
-        onAccept={handleAcceptIncomingCall}
-        onDecline={handleDeclineIncomingCall}
-      />
+      {incomingCall && (
+        <IncomingCallModal
+          visible={!!incomingCall}
+          callData={incomingCall}
+          onAccept={handleAcceptIncomingCall}
+          onDecline={handleDeclineIncomingCall}
+        />
+      )}
     </View>
   );
 }
@@ -152,6 +169,19 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090d16',
+    backgroundColor: '#090d16'
   },
+  centerContainer: {
+    flex: 1,
+    backgroundColor: '#090d16',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  loadingText: {
+    color: '#94a3b8',
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500'
+  }
 });
