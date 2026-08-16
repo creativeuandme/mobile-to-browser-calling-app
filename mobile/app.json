@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Secure Calling Owner",
+    "slug": "secure-calling-owner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#090d16"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.antigravity.securecalling",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Camera permission is required for private video calling.",
+        "NSMicrophoneUsageDescription": "Microphone permission is required for private voice and video calling."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#090d16"
+      },
+      "package": "com.antigravity.securecalling",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "ACCESS_NETWORK_STATE",
+        "MODIFY_AUDIO_SETTINGS",
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Allow Secure Calling to use your camera for video calls.",
+          "microphonePermission": "Allow Secure Calling to use your microphone for voice calls."
+        }
+      ],
+      "expo-asset"
+    ]
+  }
+}
