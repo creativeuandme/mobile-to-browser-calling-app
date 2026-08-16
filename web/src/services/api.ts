@@ -46,3 +46,20 @@ export async function fetchTurnCredentials(): Promise<RTCIceServer[]> {
     return [{ urls: 'stun:stun.l.google.com:19302' }];
   }
 }
+
+export async function loginOwner(email: string, password: string) {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'bypass-tunnel-reminder': 'true' },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Login failed');
+  }
+  return data;
+}
+
+export async function listTokens() {
+  return { tokens: [{ id: 'my-private-call', label: 'Personal Private Link', is_active: true }] };
+}
