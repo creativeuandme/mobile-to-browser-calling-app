@@ -56,15 +56,9 @@ export function setupSocketIO(io: SocketIOServer) {
       console.log(`Guest authenticated: ${guestSessionId} on socket ${socket.id}`);
     });
 
-    // Call Initiation from Guest
-    socket.on('call-initiate', async (data: { guestSessionId: string; tokenId: string; callType: 'voice' | 'video' }) => {
+    // Call Initiation (Bidirectional: Participant A or Participant B)
+    socket.on('call-initiate', async (data: { guestSessionId?: string; tokenId: string; callType: 'voice' | 'video' }) => {
       const { guestSessionId, tokenId, callType } = data;
-
-      const authenticatedGuest = socketGuestMap.get(socket.id);
-      if (authenticatedGuest !== guestSessionId) {
-        socket.emit('call-error', { message: 'Unauthorized guest session' });
-        return;
-      }
 
       const tokenRecord = db.prepare('SELECT owner_id, label FROM call_tokens WHERE id = ? AND is_active = 1').get(tokenId) as any;
       if (!tokenRecord) {
@@ -73,9 +67,13 @@ export function setupSocketIO(io: SocketIOServer) {
       }
 
       const ownerId = tokenRecord.owner_id;
+      const callerOwnerId = socketOwnerMap.get(socket.id);
+      const callerGuestId = socketGuestMap.get(socket.id);
+
+      const effectiveGuestId = guestSessionId || callerGuestId || 'default-guest-session';
 
       // Create Call Session with Concurrency Check
-      const result = createCallSession(ownerId, tokenId, guestSessionId, callType);
+      const result = createCallSession(ownerId, tokenId, effectiveGuestId, callType);
       if (!result.success || !result.call) {
         socket.emit('call-busy', { message: result.reason || 'User is currently busy' });
         return;
@@ -86,20 +84,33 @@ export function setupSocketIO(io: SocketIOServer) {
 
       socket.emit('call-ringing', { callId: call.call_id, callType });
 
-      const ownerSocketId = ownerSockets.get(ownerId);
-      if (ownerSocketId) {
-        io.to(ownerSocketId).emit('incoming-call', {
-          callId: call.call_id,
-          callType: call.call_type,
-          tokenLabel: tokenRecord.label || 'Private Caller'
-        });
+      // Determine recipient (the opposite participant)
+      if (callerOwnerId) {
+        // Owner is caller -> recipient is Guest
+        const guestSocketId = guestSockets.get(effectiveGuestId);
+        if (guestSocketId) {
+          io.to(guestSocketId).emit('incoming-call', {
+            callId: call.call_id,
+            callType: call.call_type,
+            tokenLabel: 'Private Owner'
+          });
+        }
       } else {
-        // Owner app is backgrounded or closed -> Dispatch FCM Push Notification
-        await sendIncomingCallPush(ownerId, {
-          callId: call.call_id,
-          callType: call.call_type,
-          tokenLabel: tokenRecord.label
-        });
+        // Guest is caller -> recipient is Owner
+        const ownerSocketId = ownerSockets.get(ownerId);
+        if (ownerSocketId) {
+          io.to(ownerSocketId).emit('incoming-call', {
+            callId: call.call_id,
+            callType: call.call_type,
+            tokenLabel: tokenRecord.label || 'Private Caller'
+          });
+        } else {
+          await sendIncomingCallPush(ownerId, {
+            callId: call.call_id,
+            callType: call.call_type,
+            tokenLabel: tokenRecord.label
+          });
+        }
       }
 
       // Set 30-Second Call Timeout
@@ -109,13 +120,22 @@ export function setupSocketIO(io: SocketIOServer) {
       callTimeoutTimers.set(call.call_id, timer);
     });
 
-    // Owner Accepts Call
+    // Accept Call (Bidirectional)
     socket.on('call-accept', (data: { callId: string }) => {
       const { callId } = data;
       const ownerId = socketOwnerMap.get(socket.id);
+      const guestSessionId = socketGuestMap.get(socket.id);
 
       const activeCall = db.prepare('SELECT * FROM active_calls WHERE call_id = ?').get(callId) as ActiveCall | undefined;
-      if (!activeCall || activeCall.owner_id !== ownerId) {
+      if (!activeCall) {
+        socket.emit('call-error', { message: 'Unauthorized call accept attempt' });
+        return;
+      }
+
+      const isOwner = activeCall.owner_id === ownerId;
+      const isGuest = activeCall.guest_session_id === guestSessionId || !guestSessionId;
+
+      if (!isOwner && !isGuest) {
         socket.emit('call-error', { message: 'Unauthorized call accept attempt' });
         return;
       }
@@ -123,14 +143,17 @@ export function setupSocketIO(io: SocketIOServer) {
       // Clear 30-second timeout timer
       clearTimeoutTimer(callId);
 
-      const updated = updateCallStatus(callId, 'accepted');
+      updateCallStatus(callId, 'accepted');
 
       const guestSocketId = guestSockets.get(activeCall.guest_session_id);
+      const ownerSocketId = ownerSockets.get(activeCall.owner_id);
+
       if (guestSocketId) {
         io.to(guestSocketId).emit('call-accepted', { callId, callType: activeCall.call_type });
       }
-
-      socket.emit('call-accepted', { callId, callType: activeCall.call_type });
+      if (ownerSocketId) {
+        io.to(ownerSocketId).emit('call-accepted', { callId, callType: activeCall.call_type });
+      }
     });
 
     // Owner Declines Call

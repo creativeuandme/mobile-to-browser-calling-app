@@ -104,6 +104,7 @@ export const GuestCallPage: React.FC<GuestCallPageProps> = ({ token }) => {
     const socket = socketService.connect();
 
     socket.off('authenticated');
+    socket.off('incoming-call');
     socket.off('call-ringing');
     socket.off('call-accepted');
     socket.off('call-declined');
@@ -122,6 +123,15 @@ export const GuestCallPage: React.FC<GuestCallPageProps> = ({ token }) => {
         tokenId: validation.token_id,
         callType: type
       });
+    });
+
+    socket.on('incoming-call', (data: { callId: string; callType: 'voice' | 'video' }) => {
+      console.log('[Guest] Incoming call received from Owner:', data);
+      setCallId(data.callId);
+      setCallType(data.callType);
+      setStatusMessage('Incoming call from Owner...');
+      // Auto accept or show incoming dialog
+      socket.emit('call-accept', { callId: data.callId });
     });
 
     socket.on('call-ringing', (data: { callId: string }) => {
