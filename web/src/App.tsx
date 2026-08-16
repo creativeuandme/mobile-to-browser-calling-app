@@ -73,7 +73,7 @@ export const App: React.FC = () => {
               <Lock className="w-3.5 h-3.5 text-emerald-400" /> URL Format Example:
             </p>
             <code className="text-emerald-400 font-mono block break-all pt-1">
-              http://192.168.0.122:3000/call/&lt;secure-token&gt;
+              https://callingmedia.netlify.app/call/&lt;secure-token&gt;
             </code>
           </div>
         </div>

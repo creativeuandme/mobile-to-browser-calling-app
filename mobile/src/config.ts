@@ -8,4 +8,4 @@ export const SOCKET_URL =
   process.env.EXPO_PUBLIC_SOCKET_URL || 'http://192.168.0.122:5000';
 
 export const WEB_BASE_URL =
-  process.env.EXPO_PUBLIC_WEB_BASE_URL || 'http://192.168.0.122:3000';
+  process.env.EXPO_PUBLIC_WEB_BASE_URL || 'https://callingmedia.netlify.app';
