@@ -41,8 +41,12 @@ export default function App() {
       const res = await loginOwner('owner@example.com', 'password123');
       setUser(res.user);
       setAuthToken(res.token);
+
+      // Register socket listeners first, then authenticate
+      const socket = mobileSocketService.connect();
+      setupSocketListeners(socket);
       mobileSocketService.authenticate(res.token);
-      setupSocketListeners();
+
       console.log('[Mobile App] Auto-login default owner SUCCESS');
     } catch (err) {
       console.warn('[Mobile App] Auto-login failed, falling back to login screen:', err);
@@ -54,12 +58,13 @@ export default function App() {
   const handleLoginSuccess = (userData: any, token: string) => {
     setUser(userData);
     setAuthToken(token);
+    const socket = mobileSocketService.connect();
+    setupSocketListeners(socket);
     mobileSocketService.authenticate(token);
-    setupSocketListeners();
   };
 
-  const setupSocketListeners = () => {
-    const socket = mobileSocketService.getSocket();
+  const setupSocketListeners = (socketInstance?: any) => {
+    const socket = socketInstance || mobileSocketService.getSocket();
     if (!socket) return;
 
     socket.off('incoming-call');
@@ -68,19 +73,22 @@ export default function App() {
     socket.off('call-ended');
 
     socket.on('incoming-call', (data: { callId: string; callType: 'voice' | 'video'; tokenLabel?: string }) => {
-      console.log('[Mobile App] Received incoming call alert:', data);
+      console.log('[Mobile App] RECEIVE INCOMING CALL ALERT:', data);
       setIncomingCall(data);
     });
 
     socket.on('call-cancelled', () => {
+      console.log('[Mobile App] Call cancelled by caller');
       setIncomingCall(null);
     });
 
     socket.on('call-missed', () => {
+      console.log('[Mobile App] Call missed');
       setIncomingCall(null);
     });
 
     socket.on('call-ended', () => {
+      console.log('[Mobile App] Call ended');
       setIncomingCall(null);
       setActiveCall(null);
       setCurrentScreen('dashboard');
