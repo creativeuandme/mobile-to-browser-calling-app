@@ -19,6 +19,7 @@ export const ActiveCallScreen: React.FC<ActiveCallScreenProps> = ({
   const [remoteStream, setRemoteStream] = useState<any>(null);
   const [micEnabled, setMicEnabled] = useState<boolean>(true);
   const [cameraEnabled, setCameraEnabled] = useState<boolean>(true);
+  const [speakerOn, setSpeakerOn] = useState<boolean>(false); // DEFAULT: EARPIECE MODE
   const [connectionState, setConnectionState] = useState<string>('connecting');
   const [remoteMediaState, setRemoteMediaState] = useState<{ audioEnabled: boolean; videoEnabled: boolean }>({
     audioEnabled: true,
@@ -63,6 +64,12 @@ export const ActiveCallScreen: React.FC<ActiveCallScreenProps> = ({
 
   const handleSwitchCamera = () => {
     webrtcManager.switchCamera();
+  };
+
+  const handleToggleSpeaker = () => {
+    const next = !speakerOn;
+    setSpeakerOn(next);
+    webrtcManager.setSpeakerphone(next);
   };
 
   const handleEndCallPressed = () => {
@@ -150,6 +157,13 @@ export const ActiveCallScreen: React.FC<ActiveCallScreenProps> = ({
           onPress={handleToggleMic}
         >
           <Text style={styles.controlBtnText}>{micEnabled ? '🎙️ Mute' : '🔇 Muted'}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.controlBtn, speakerOn && styles.controlBtnActive]}
+          onPress={handleToggleSpeaker}
+        >
+          <Text style={styles.controlBtnText}>{speakerOn ? '🔊 Speaker' : '📞 Earpiece'}</Text>
         </TouchableOpacity>
 
         {callType === 'video' && (
@@ -296,6 +310,10 @@ const styles = StyleSheet.create({
   controlBtnOff: {
     backgroundColor: 'rgba(239, 68, 68, 0.2)',
     borderColor: '#ef4444',
+  },
+  controlBtnActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: '#10b981',
   },
   controlBtnText: {
     color: '#f8fafc',

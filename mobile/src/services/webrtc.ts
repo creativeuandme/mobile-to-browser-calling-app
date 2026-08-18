@@ -63,6 +63,9 @@ export class MobileWebRTCManager {
     this.callbacks = callbacks;
     this.log(`Initializing Mobile WebRTC Call ID: ${callId}, Type: ${callType}`);
 
+    // Default audio output routing to EARPIECE (Normal Call Receiver)
+    this.setSpeakerphone(false);
+
     const constraints = {
       audio: {
         echoCancellation: true,
@@ -342,6 +345,18 @@ export class MobileWebRTCManager {
       });
       this.isFrontCamera = !this.isFrontCamera;
       this.log(`Mobile Switched Camera. IsFront: ${this.isFrontCamera}`);
+    }
+  }
+
+  setSpeakerphone(speakerOn: boolean) {
+    this.log(`Toggling Audio Output: ${speakerOn ? '🔊 Speaker (Loudspeaker)' : '📞 Earpiece (Receiver)'}`);
+    try {
+      const webrtc = require('react-native-webrtc');
+      if (webrtc.InCallManager) {
+        webrtc.InCallManager.setForceSpeakerphoneOn(speakerOn);
+      }
+    } catch (e) {
+      console.warn('[Mobile WebRTC] InCallManager speakerphone toggle notice:', e);
     }
   }
 
