@@ -6,6 +6,13 @@ let RTCPeerConnectionClass: any;
 let RTCSessionDescriptionClass: any;
 let RTCIceCandidateClass: any;
 let RTCViewComponent: any;
+let InCallManager: any;
+
+try {
+  InCallManager = require('react-native-incall-manager').default || require('react-native-incall-manager');
+} catch (e) {
+  console.warn('[Mobile WebRTC] InCallManager module loading warning:', e);
+}
 
 try {
   const webrtc = require('react-native-webrtc');
@@ -63,8 +70,18 @@ export class MobileWebRTCManager {
     this.callbacks = callbacks;
     this.log(`Initializing Mobile WebRTC Call ID: ${callId}, Type: ${callType}`);
 
-    // Default audio output routing to EARPIECE (Normal Call Receiver)
-    this.setSpeakerphone(false);
+    // Initialize native Android InCallManager for voice communication audio routing
+    if (InCallManager) {
+      try {
+        this.log(`[InCallManager] Starting audio session: MODE_IN_COMMUNICATION, media=${callType}`);
+        InCallManager.start({ media: callType === 'video' ? 'video' : 'audio', auto: false });
+        InCallManager.setForceSpeakerphoneOn(false); // DEFAULT: EARPIECE RECEIVER
+      } catch (e) {
+        this.log(`[InCallManager] Start warning: ${e}`);
+      }
+    } else {
+      this.setSpeakerphone(false);
+    }
 
     const constraints = {
       audio: {
@@ -349,14 +366,18 @@ export class MobileWebRTCManager {
   }
 
   setSpeakerphone(speakerOn: boolean) {
-    this.log(`Toggling Audio Output: ${speakerOn ? '🔊 Speaker (Loudspeaker)' : '📞 Earpiece (Receiver)'}`);
-    try {
-      const webrtc = require('react-native-webrtc');
-      if (webrtc.InCallManager) {
-        webrtc.InCallManager.setForceSpeakerphoneOn(speakerOn);
+    const routeName = speakerOn ? 'SPEAKER (Loudspeaker)' : 'EARPIECE (Receiver)';
+    this.log(`[AUDIO ROUTE BUTTON PRESSED] Requested route: ${routeName}`);
+
+    if (InCallManager) {
+      try {
+        InCallManager.setForceSpeakerphoneOn(speakerOn);
+        this.log(`[ANDROID AUDIO ROUTE REQUEST SUCCESS] Executed InCallManager.setForceSpeakerphoneOn(${speakerOn})`);
+      } catch (e) {
+        this.log(`[ANDROID AUDIO ROUTE REQUEST ERROR] ${e}`);
       }
-    } catch (e) {
-      console.warn('[Mobile WebRTC] InCallManager speakerphone toggle notice:', e);
+    } else {
+      this.log(`[ANDROID AUDIO ROUTE REQUEST WARNING] InCallManager module unavailable on platform: ${Platform.OS}`);
     }
   }
 
@@ -373,6 +394,12 @@ export class MobileWebRTCManager {
   }
 
   cleanup() {
+    if (InCallManager) {
+      try {
+        InCallManager.stop();
+        this.log(`[InCallManager] Stopped native audio session and restored system audio routing.`);
+      } catch (e) {}
+    }
     if (this.statsInterval) {
       clearInterval(this.statsInterval);
       this.statsInterval = null;
