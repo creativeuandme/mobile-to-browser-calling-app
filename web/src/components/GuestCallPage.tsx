@@ -12,7 +12,8 @@ import {
   Clock,
   UserCheck,
   Lock,
-  Volume2
+  Volume2,
+  Volume1
 } from 'lucide-react';
 import { validateCallLink, fetchTurnCredentials, LinkValidationResponse } from '../services/api';
 import { socketService } from '../services/socket';
@@ -36,6 +37,7 @@ export const GuestCallPage: React.FC<GuestCallPageProps> = ({ token }) => {
   // Active call media controls
   const [micEnabled, setMicEnabled] = useState<boolean>(true);
   const [cameraEnabled, setCameraEnabled] = useState<boolean>(true);
+  const [speakerOn, setSpeakerOn] = useState<boolean>(false); // DEFAULT: EARPIECE MODE
   const [remoteAudioEnabled, setRemoteAudioEnabled] = useState<boolean>(true);
   const [remoteVideoEnabled, setRemoteVideoEnabled] = useState<boolean>(true);
   const [connectionState, setConnectionState] = useState<string>('connecting');
@@ -237,6 +239,14 @@ export const GuestCallPage: React.FC<GuestCallPageProps> = ({ token }) => {
       webRtcManagerRef.current.cleanup();
     }
     setStep('ended');
+  };
+
+  const toggleSpeaker = () => {
+    const next = !speakerOn;
+    setSpeakerOn(next);
+    if (remoteAudioRef.current && (remoteAudioRef.current as any).setSinkId) {
+      (remoteAudioRef.current as any).setSinkId(next ? 'speaker' : 'default').catch(() => {});
+    }
   };
 
   const toggleMic = () => {
@@ -462,6 +472,28 @@ export const GuestCallPage: React.FC<GuestCallPageProps> = ({ token }) => {
           title={micEnabled ? 'Mute Mic' : 'Unmute Mic'}
         >
           {micEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+        </button>
+
+        <button
+          onClick={toggleSpeaker}
+          className={`px-4 py-3 rounded-full border flex items-center gap-2 text-sm font-semibold transition-all ${
+            speakerOn
+              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+              : 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
+          }`}
+          title={speakerOn ? 'Switch to Earpiece' : 'Switch to Speaker'}
+        >
+          {speakerOn ? (
+            <>
+              <Volume2 className="w-5 h-5 text-emerald-400" />
+              <span>🔊 Speaker</span>
+            </>
+          ) : (
+            <>
+              <Volume1 className="w-5 h-5 text-slate-300" />
+              <span>📞 Earpiece</span>
+            </>
+          )}
         </button>
 
         {callType === 'video' && (
